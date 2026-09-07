@@ -1,0 +1,3 @@
+-r requirements.txt
+# Only scripts/caption.py needs transformers directly; sentence-transformers pulls it in transitively for the demo.
+transformers==5.16.1
