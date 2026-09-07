@@ -1,12 +1,15 @@
-"""Entry point. The ablation is added in the next branch; see README."""
+"""One command: ingest both tiers, run the retrieval ablation, answer two routed queries."""
 
 import os
 import sys
 from collections import Counter
 
-from src.ingest import load_dir
-from src.retrieval import Index
-from src.router import CORE_THRESHOLD, answer
+os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+
+from src.ablation import run  # noqa: E402
+from src.ingest import load_dir  # noqa: E402
+from src.retrieval import Index  # noqa: E402
+from src.router import CORE_THRESHOLD, answer  # noqa: E402
 
 QUERIES = [
     "Which planets are the inner planets?",
@@ -22,8 +25,10 @@ if __name__ == "__main__":
     counts = Counter(c.modality for c in corpus)
     print(f"core tier: {len(core)} chunks from data/core")
     print(f"corpus tier: {len(corpus)} chunks from data/corpus "
-          f"({', '.join(f'{m} {n}' for m, n in sorted(counts.items()))})")
+          f"({', '.join(f'{m} {n}' for m, n in sorted(counts.items()))})\n")
     core_index, corpus_index = Index(core), Index(corpus)
+
+    run(corpus_index)
 
     for query in QUERIES:
         result = answer(query, core_index, corpus_index)
