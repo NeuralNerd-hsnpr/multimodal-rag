@@ -10,7 +10,7 @@ from sentence_transformers import SentenceTransformer
 from src.ingest import Chunk
 
 EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
-RRF_K = 60  # the constant from the original RRF paper; it dampens the weight of top ranks
+RRF_K = 1  # the usual 60 assumes lists ~1000 deep; over 34 chunks it flattens ranks, see the ablation sweep
 
 
 @functools.cache
@@ -40,7 +40,7 @@ class Index:
         q = embedder().encode(query, normalize_embeddings=True)
         return self._ranked(self.vectors @ q, k)  # cosine similarity, vectors are unit length
 
-    def hybrid_search(self, query: str, k: int) -> list[tuple[Chunk, float]]:
+    def hybrid_search(self, query: str, k: int, rrf_k: int = RRF_K) -> list[tuple[Chunk, float]]:
         """Reciprocal rank fusion of the full BM25 and dense rankings.
 
         RRF only looks at ranks, so the two score scales never have to be reconciled. The
@@ -50,5 +50,5 @@ class Index:
         for scores in (self.bm25.get_scores(tokenize(query)),
                        self.vectors @ embedder().encode(query, normalize_embeddings=True)):
             for rank, i in enumerate(np.argsort(-scores), start=1):
-                fused[i] += 1.0 / (RRF_K + rank)
+                fused[i] += 1.0 / (rrf_k + rank)
         return self._ranked(fused, k)
